@@ -70,3 +70,16 @@ def test_summarize_samples_whole_doc():
     out = summarize(chunks, SafeProvider())
     assert "topik awal" in out
     assert "topik akhir" in out
+
+def test_summarize_prompt_is_english():
+    seen = {}
+
+    class P:
+        def generate(self, prompt, context):
+            seen["prompt"] = prompt
+            return "ok"
+
+    assert summarize(["chunk satu", "chunk dua"], P()) == "ok"
+    assert "Summarize" in seen["prompt"]
+    for word in ("Ringkas", "berikut", "konteks", "Jawab"):
+        assert word not in seen["prompt"]

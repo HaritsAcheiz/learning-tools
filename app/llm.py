@@ -30,11 +30,7 @@ class OllamaProvider:
         import urllib.request
 
         ctx_block = "\n\n".join(f"[{i}] {c}" for i, c in enumerate(context))
-        full = (
-            f"{prompt}\n\nKonteks:\n{ctx_block}\n\n"
-            "Jawab hanya berdasarkan konteks di atas. "
-            "Jangan tambah fakta di luar konteks."
-        )
+        full = f"{prompt}\n\nContext:\n{ctx_block}"
         body = json.dumps(
             {
                 "model": self.model,

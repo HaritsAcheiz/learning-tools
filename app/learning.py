@@ -10,7 +10,10 @@ def summarize(chunks: list[str], provider, n: int = SUMMARY_CHUNKS) -> str:
     if not chunks:
         return "Belum ada materi pada tema ini."
     picked = [chunks[i] for i in sample_spread(chunks, n)]
-    return provider.generate("Ringkas poin kunci materi berikut:", picked)
+    return provider.generate(
+        "Summarize the key points of the following material. "
+        "Use only the context above. Do not add facts beyond the context.",
+        picked)
 
 
 def rag_answer(question: str, chunks: list[str], provider, top_k: int = 5) -> tuple[str, list[int]]:
@@ -21,7 +24,10 @@ def rag_answer(question: str, chunks: list[str], provider, top_k: int = 5) -> tu
     if not cited:
         return (REFUSE_MSG, [])
     ctx = [chunks[i] for i in cited]
-    draft = provider.generate(f"Jawab berdasarkan konteks. Pertanyaan: {question}", ctx)
+    draft = provider.generate(
+        f"Jawab berdasarkan konteks. Pertanyaan: {question} "
+        "Jawab hanya berdasarkan konteks di atas. "
+        "Jangan tambah fakta di luar konteks.", ctx)
     return (f"{draft}\nSumber: {', '.join(f'[{i}]' for i in cited)}", cited)
 
 import random
