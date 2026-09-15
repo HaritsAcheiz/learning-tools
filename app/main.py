@@ -3,6 +3,7 @@ import os
 from datetime import date
 from pathlib import Path
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse
 from app.config import get_settings
 from app import store
 from app.ingest import scan_themes, ingest_theme
@@ -37,7 +38,7 @@ def index():
             f"<li><a href='/themes/{html.escape(t['id'])}'>{html.escape(t['name'])}</a></li>"
             for t in themes
         )
-        return f"<h1>learning-tools</h1><form method='post' action='/rescan'><button>Rescan</button></form><ul>{items}</ul>"
+        return HTMLResponse(f"<h1>learning-tools</h1><form method='post' action='/rescan'><button>Rescan</button></form><ul>{items}</ul>")
     finally:
         conn.close()
 

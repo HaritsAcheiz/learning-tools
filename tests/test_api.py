@@ -29,6 +29,14 @@ def test_theme_flow(tmp_path, monkeypatch):
     assert review["confused"], "expected confused concepts after wrong answers"
     assert all(c["label"] != c["chunk_id"] for c in review["confused"])
 
+def test_index_renders_html(tmp_path, monkeypatch):
+    client = _setup_client(tmp_path, monkeypatch)
+    assert client.post("/rescan").status_code == 200
+    r = client.get("/")
+    assert r.status_code == 200
+    assert r.headers["content-type"].startswith("text/html")
+    assert r.text.startswith("<h1>")
+
 def test_unknown_theme_404(tmp_path, monkeypatch):
     client = _setup_client(tmp_path, monkeypatch)
     assert client.post("/rescan").status_code == 200
