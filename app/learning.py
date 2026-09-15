@@ -21,6 +21,7 @@ def rag_answer(question: str, chunks: list[str], provider, top_k: int = 5) -> tu
     draft = provider.generate(f"Jawab berdasarkan konteks. Pertanyaan: {question}", ctx)
     return (f"{draft}\nSumber: {', '.join(f'[{i}]' for i in cited)}", cited)
 
+import random
 import re
 from app.models import QuizItem
 
@@ -44,8 +45,10 @@ def make_cloze_quiz(chunks: list[str], chunk_ids: list[str], num: int = 5) -> li
         while len(distractors) < 2:
             distractors.append("konsep lain")
         options = [key] + distractors[:2]
+        rng = random.Random(question)
+        rng.shuffle(options)
         items.append(QuizItem(
-            question=question, options=options, answer=0,
+            question=question, options=options, answer=options.index(key),
             explanation=f"Jawaban benar '{key}' berasal dari kalimat: {sentences[0][:160]}",
             chunk_id=cid,
         ))

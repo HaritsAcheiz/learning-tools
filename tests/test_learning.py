@@ -14,6 +14,12 @@ def test_rag_answer_cites_chunk():
     assert "kloroplas" in answer
     assert "[0]" in answer
 
+def test_rag_answer_top_k():
+    answer, cited = rag_answer("fotosintesis energi?", CHUNKS, SafeProvider(), top_k=1)
+    assert len(cited) <= 1
+    answer_all, cited_all = rag_answer("fotosintesis energi?", CHUNKS, SafeProvider(), top_k=5)
+    assert len(cited_all) >= len(cited)
+
 def test_rag_refuses_without_context():
     answer, cited = rag_answer("apa kabar?", [], SafeProvider())
     assert cited == []
@@ -25,8 +31,10 @@ from app.store import init_db, record_mistake, get_confused
 def test_cloze_quiz_and_grading():
     items = make_cloze_quiz(["Jakarta adalah ibu kota Indonesia"], ["d0:0"], num=1)
     assert len(items) == 1
-    assert items[0].answer in (0, 1, 2)
-    assert len(items[0].options) == 3
+    assert items[0].options[items[0].answer] == "Indonesia"
+    assert items[0].answer != 0
+    again = make_cloze_quiz(["Jakarta adalah ibu kota Indonesia"], ["d0:0"], num=1)
+    assert again[0].options == items[0].options and again[0].answer == items[0].answer
     res = grade_quiz(items, [items[0].answer])
     assert res["score"] == 1.0 and res["details"][0]["correct"] is True
 
