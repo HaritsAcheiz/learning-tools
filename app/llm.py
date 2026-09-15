@@ -32,10 +32,16 @@ class OllamaProvider:
         ctx_block = "\n\n".join(f"[{i}] {c}" for i, c in enumerate(context))
         full = (
             f"{prompt}\n\nKonteks:\n{ctx_block}\n\n"
-            "Jawab hanya berdasarkan konteks di atas."
+            "Jawab hanya berdasarkan konteks di atas. "
+            "Jangan tambah fakta di luar konteks."
         )
         body = json.dumps(
-            {"model": self.model, "prompt": full, "stream": False}
+            {
+                "model": self.model,
+                "prompt": full,
+                "stream": False,
+                "options": {"num_ctx": 8192, "temperature": 0},
+            }
         ).encode()
         req = urllib.request.Request("http://localhost:11434/api/generate", data=body)
         with urllib.request.urlopen(req, timeout=120) as res:

@@ -27,6 +27,17 @@ def search(query: str, chunks: list[str], top_k: int = 5) -> list[tuple[int, flo
     order = np.argsort(-scores)[:top_k]
     return [(int(i), float(scores[i])) for i in order]
 
+def sample_spread(texts: list[str], n: int = 8) -> list[int]:
+    """Stratified indices across the whole document, always covering first and last.
+
+    A summary built from only the first chunks reflects just the document's
+    opening; even spacing bounds the largest uncovered gap instead.
+    """
+    m = len(texts)
+    if m <= n:
+        return list(range(m))
+    return sorted({round(i * (m - 1) / (n - 1)) for i in range(n)})
+
 class FaissIndex:
     try:
         import faiss  # type: ignore

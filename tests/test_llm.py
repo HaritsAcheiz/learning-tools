@@ -33,6 +33,8 @@ def test_ollama_embeds_context_in_prompt(monkeypatch):
     assert seen["url"] == "http://localhost:11434/api/generate"
     assert seen["body"]["model"] == "uji-model"
     assert seen["body"]["stream"] is False
+    assert seen["body"]["options"]["temperature"] == 0
+    assert seen["body"]["options"]["num_ctx"] >= 8192
     assert "konteks satu" in seen["body"]["prompt"]
     assert "konteks dua" in seen["body"]["prompt"]
     assert "context" not in seen["body"]

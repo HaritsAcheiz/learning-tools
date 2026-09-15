@@ -1,6 +1,6 @@
 # tests/test_retrieval.py
 import pytest
-from app.retrieval import embed, search, FaissIndex
+from app.retrieval import embed, search, FaissIndex, sample_spread
 
 CHUNKS = ["kucing makan ikan", "belajar efektif dengan repetisi", "ikan hidup di air"]
 
@@ -20,3 +20,16 @@ def test_faiss_optional():
     idx = FaissIndex(dim=512)
     idx.add(embed(CHUNKS))
     assert idx.search(embed(["repetisi"])[0], 1)[0][0] == 1
+
+def test_sample_spread_covers_whole_doc():
+    texts = [f"chunk-{i}" for i in range(20)]
+    idx = sample_spread(texts, n=8)
+    assert len(idx) == 8
+    assert idx == sorted(idx)
+    assert idx[0] == 0
+    assert idx[-1] == 19
+    assert max(b - a for a, b in zip(idx, idx[1:])) <= 4
+
+def test_sample_spread_short_doc_keeps_all():
+    texts = ["a", "b", "c"]
+    assert sample_spread(texts, n=8) == [0, 1, 2]

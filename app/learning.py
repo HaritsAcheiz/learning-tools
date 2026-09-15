@@ -1,13 +1,16 @@
 # app/learning.py (part 1)
-from app.retrieval import search
+from app.retrieval import search, sample_spread
 
 REFUSE_MSG = "Maaf, saya tidak menemukan konteks yang cukup di materi ini."
 
+SUMMARY_CHUNKS = 8
 
-def summarize(chunks: list[str], provider) -> str:
+
+def summarize(chunks: list[str], provider, n: int = SUMMARY_CHUNKS) -> str:
     if not chunks:
         return "Belum ada materi pada tema ini."
-    return provider.generate("Ringkas poin kunci materi berikut:", chunks[:5])
+    picked = [chunks[i] for i in sample_spread(chunks, n)]
+    return provider.generate("Ringkas poin kunci materi berikut:", picked)
 
 
 def rag_answer(question: str, chunks: list[str], provider, top_k: int = 5) -> tuple[str, list[int]]:

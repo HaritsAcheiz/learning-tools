@@ -62,3 +62,11 @@ def test_due_list(tmp_path):
     assert len(due_cards(conn, "t", "2026-09-15")) == 1
     assert len(due_cards(conn, "t", "2026-09-14")) == 0
     conn.close()
+
+def test_summarize_samples_whole_doc():
+    chunks = [f"topik awal bagian-{i}" for i in range(5)]
+    chunks += [f"topik tengah bagian-{i}" for i in range(5, 15)]
+    chunks += [f"topik akhir bagian-{i} penutup" for i in range(15, 20)]
+    out = summarize(chunks, SafeProvider())
+    assert "topik awal" in out
+    assert "topik akhir" in out
