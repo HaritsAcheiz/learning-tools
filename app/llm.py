@@ -14,18 +14,31 @@ class SafeProvider:
 
 
 class OllamaProvider:
-    def __init__(self, model: str = "llama3.1"):
-        self.model = model
+    """Local LLM via Ollama /api/generate.
+
+    Retrieved chunks are inlined into the prompt text: Ollama's `context`
+    field carries token-id arrays for conversation continuity, not source
+    text, so sending chunks there would be a protocol error.
+    Model is selectable via the LT_MODEL env var.
+    """
+
+    def __init__(self, model: str | None = None):
+        self.model = model or os.environ.get("LT_MODEL", "llama3.2:3b")
 
     def generate(self, prompt: str, context: list[str]) -> str:
         import json
         import urllib.request
 
+        ctx_block = "\n\n".join(f"[{i}] {c}" for i, c in enumerate(context))
+        full = (
+            f"{prompt}\n\nKonteks:\n{ctx_block}\n\n"
+            "Jawab hanya berdasarkan konteks di atas."
+        )
         body = json.dumps(
-            {"model": self.model, "prompt": prompt, "context": context, "stream": False}
+            {"model": self.model, "prompt": full, "stream": False}
         ).encode()
         req = urllib.request.Request("http://localhost:11434/api/generate", data=body)
-        with urllib.request.urlopen(req, timeout=60) as res:
+        with urllib.request.urlopen(req, timeout=120) as res:
             return json.loads(res.read().decode()).get("response", "")
 
 
