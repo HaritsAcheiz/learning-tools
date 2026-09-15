@@ -53,3 +53,14 @@ def test_get_provider_falls_back_when_ollama_down(monkeypatch):
 
     monkeypatch.setattr("urllib.request.urlopen", boom)
     assert isinstance(get_provider(), SafeProvider)
+
+
+def test_ollama_falls_back_to_excerpts_on_timeout(monkeypatch):
+    def slow(*args, **kwargs):
+        raise TimeoutError("timed out")
+
+    monkeypatch.setattr("urllib.request.urlopen", slow)
+    out = OllamaProvider(model="uji-model").generate(
+        "Pertanyaan", ["konteks satu", "konteks dua"])
+    assert "konteks satu" in out
+    assert "1." in out

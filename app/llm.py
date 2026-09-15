@@ -27,6 +27,7 @@ class OllamaProvider:
 
     def generate(self, prompt: str, context: list[str]) -> str:
         import json
+        import urllib.error
         import urllib.request
 
         ctx_block = "\n\n".join(f"[{i}] {c}" for i, c in enumerate(context))
@@ -40,8 +41,13 @@ class OllamaProvider:
             }
         ).encode()
         req = urllib.request.Request("http://localhost:11434/api/generate", data=body)
-        with urllib.request.urlopen(req, timeout=120) as res:
-            return json.loads(res.read().decode()).get("response", "")
+        try:
+            with urllib.request.urlopen(req, timeout=120) as res:
+                return json.loads(res.read().decode()).get("response", "")
+        except (TimeoutError, urllib.error.URLError, json.JSONDecodeError):
+            # Reachable-but-slow/broken Ollama must degrade like a down one:
+            # excerpt fallback instead of a 500 (see README fallback contract).
+            return SafeProvider().generate(prompt, context)
 
 
 def get_provider() -> LLMProvider:
