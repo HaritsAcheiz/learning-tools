@@ -264,6 +264,7 @@ def theme_page(ctx: dict, active: str = "baca", answer: dict | None = None,
     else:
         section = ("<section class='step'><div class='step-num'>1</div><div>"
                    "<h2>Baca</h2>"
+                   f"<p class='cite'>Mode: {html.escape(ctx['mode'])}</p>"
                    f"<p>{html.escape(ctx['summary'])}</p>"
                    "</div></section>")
     body = (

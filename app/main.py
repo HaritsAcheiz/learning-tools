@@ -43,11 +43,14 @@ def _theme_context(conn, s, theme_id: str, num: int = 5) -> dict:
     today = date.today().isoformat()
     ensure_cards(conn, theme_id, chunks, today)
     names = {t["id"]: t["name"] for t in store.list_themes(conn)}
+    provider = get_provider()
+    model = getattr(provider, "model", None)
     return {
         "theme_id": theme_id,
         "name": names.get(theme_id, theme_id),
+        "mode": f"AI lokal ({model})" if model else "kutipan (SAFE)",
         "chunks": len(texts),
-        "summary": summarize(texts, get_provider()),
+        "summary": summarize(texts, provider),
         "quiz_items": [i.__dict__ for i in make_cloze_quiz(
             texts, [c["id"] for c in chunks], num)],
         "due": due_cards(conn, theme_id, today),

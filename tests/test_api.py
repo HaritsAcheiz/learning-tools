@@ -69,6 +69,13 @@ def test_theme_page_html(tmp_path, monkeypatch):
         assert href in r.text
     assert "answer-0" not in r.text
 
+def test_baca_shows_provider_mode(tmp_path, monkeypatch):
+    client = _setup_client(tmp_path, monkeypatch)
+    assert client.post("/rescan").status_code == 200
+    monkeypatch.setenv("LT_SAFE", "1")
+    r = client.get("/themes/bio.md", headers={"Accept": "text/html"})
+    assert "Mode: kutipan (SAFE)" in r.text
+
 def test_step_pages_html(tmp_path, monkeypatch):
     client = _setup_client(tmp_path, monkeypatch)
     assert client.post("/rescan").status_code == 200
