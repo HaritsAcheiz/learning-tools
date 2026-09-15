@@ -104,18 +104,31 @@ async def ask(theme_id: str, request: Request):
             answer, cited = rag_answer(question, texts, get_provider(), top_k=s.top_k)
             ctx = _theme_context(conn, s, theme_id)
             return HTMLResponse(pages.theme_page(
-                ctx, answer={"answer": answer, "cited": cited}))
+                ctx, active="tanya", answer={"answer": answer, "cited": cited}))
         payload = await request.json()
         answer, cited = rag_answer(payload.get("question", ""), texts, get_provider(), top_k=s.top_k)
         return {"answer": answer, "cited": cited}
     finally:
         conn.close()
 
-@app.get("/themes/{theme_id}/quiz")
-def get_quiz(theme_id: str, num: int = 5):
+@app.get("/themes/{theme_id}/tanya")
+async def tanya_page(theme_id: str, request: Request):
     s, conn = _ctx()
     try:
         _require_theme(conn, s, theme_id)
+        return HTMLResponse(pages.theme_page(
+            _theme_context(conn, s, theme_id), active="tanya"))
+    finally:
+        conn.close()
+
+@app.get("/themes/{theme_id}/quiz")
+async def get_quiz(theme_id: str, request: Request, num: int = 5):
+    s, conn = _ctx()
+    try:
+        _require_theme(conn, s, theme_id)
+        if _wants_html(request):
+            return HTMLResponse(pages.theme_page(
+                _theme_context(conn, s, theme_id, num), active="kuis"))
         chunks = store.list_chunks(conn, theme_id)
         items = make_cloze_quiz([c["text"] for c in chunks], [c["id"] for c in chunks], num)
         return {"total": len(items), "items": [i.__dict__ for i in items]}
@@ -146,7 +159,7 @@ async def submit_quiz(theme_id: str, request: Request):
                 if not d["correct"]:
                     store.record_mistake(conn, theme_id, d["chunk_id"], it.question[:120])
             ctx = _theme_context(conn, s, theme_id)
-            return HTMLResponse(pages.theme_page(ctx, quiz_result=result, quiz_items=items))
+            return HTMLResponse(pages.theme_page(ctx, active="kuis", quiz_result=result, quiz_items=items))
         payload = await request.json()
         if payload.get("items"):
             items = [QuizItem(**d) for d in payload["items"]]
@@ -162,10 +175,13 @@ async def submit_quiz(theme_id: str, request: Request):
         conn.close()
 
 @app.get("/themes/{theme_id}/review")
-def get_review(theme_id: str):
+async def get_review(theme_id: str, request: Request):
     s, conn = _ctx()
     try:
         _require_theme(conn, s, theme_id)
+        if _wants_html(request):
+            return HTMLResponse(pages.theme_page(
+                _theme_context(conn, s, theme_id), active="review"))
         today = date.today().isoformat()
         chunks = store.list_chunks(conn, theme_id)
         ensure_cards(conn, theme_id, chunks, today)
@@ -204,7 +220,7 @@ async def submit_review(theme_id: str, request: Request):
                 if _is_form(request):
                     ctx = _theme_context(conn, s, theme_id)
                     return HTMLResponse(pages.theme_page(
-                        ctx, notice=f"Kartu dijadwalkan ulang: {updated.due}."))
+                        ctx, active="review", notice=f"Kartu dijadwalkan ulang: {updated.due}."))
                 return {"card": updated.__dict__}
         raise HTTPException(status_code=404, detail="card not due")
     finally:

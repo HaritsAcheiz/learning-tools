@@ -67,11 +67,14 @@ input[type="text"], textarea, select {
   border: 1px solid var(--line); border-radius: 6px; padding: 0.5rem 0.75rem;
   background: #fff;
 }
-.step { display: grid; grid-template-columns: 3.5rem 1fr; gap: 1rem; margin-top: 2.5rem; }
-.step-num {
+.step { display: grid; grid-template-columns: 3.5rem 1fr; gap: 1rem; margin-top: 2.5rem; }.step-num {
   font-family: Georgia, "Times New Roman", serif; font-size: 2.5rem;
   line-height: 1; color: var(--teal);
 }
+.steps { display: flex; gap: 0.25rem; margin: 1.5rem 0 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.steps a { padding: 0.5rem 0.9rem; text-decoration: none; color: var(--muted); border-radius: 8px 8px 0 0; }
+.steps a:hover { background: var(--tint); color: var(--teal-deep); }
+.steps a[aria-current="page"] { background: var(--tint); color: var(--teal-deep); font-weight: 600; }
 .step h2 { margin: 0.4rem 0 0.75rem; font-size: 1.4rem; }
 .step form { margin: 0.75rem 0; }
 fieldset { border: 1px solid var(--line); border-radius: 8px; padding: 1rem; margin: 0 0 1rem; }
@@ -222,32 +225,52 @@ def _review_section(theme_id: str, due: list[dict], confused: list[dict]) -> str
     return "".join(parts)
 
 
-def theme_page(ctx: dict, answer: dict | None = None,
+STEPS = (("baca", "Baca", ""), ("tanya", "Tanya", "/tanya"),
+         ("kuis", "Kuis", "/quiz"), ("review", "Review", "/review"))
+
+
+def step_nav(theme_id: str, active: str) -> str:
+    links = []
+    for slug, label, suffix in STEPS:
+        href = f"/themes/{theme_id}{suffix}"
+        current = " aria-current='page'" if slug == active else ""
+        links.append(
+            f"<a href='{html.escape(href, quote=True)}'{current}>{label}</a>")
+    return f"<nav class='steps' aria-label='Langkah belajar'>{''.join(links)}</nav>"
+
+
+def theme_page(ctx: dict, active: str = "baca", answer: dict | None = None,
                quiz_result: dict | None = None, quiz_items: list | None = None,
                notice: str | None = None) -> str:
     name = html.escape(ctx["name"])
     notice_html = f"<div class='notice'><p>{html.escape(notice)}</p></div>" if notice else ""
-    quiz_block = _quiz_result(quiz_result, quiz_items or []) if quiz_result else _quiz_section(
-        ctx["theme_id"], ctx["quiz_items"])
+    if active == "tanya":
+        section = ("<section class='step'><div class='step-num'>2</div><div>"
+                   "<h2>Tanya</h2>"
+                   f"{_ask_section(ctx['theme_id'], answer)}"
+                   "</div></section>")
+    elif active == "kuis":
+        quiz_block = _quiz_result(quiz_result, quiz_items or []) if quiz_result else _quiz_section(
+            ctx["theme_id"], ctx["quiz_items"])
+        section = ("<section class='step'><div class='step-num'>3</div><div>"
+                   "<h2>Kuis</h2>"
+                   f"{quiz_block}"
+                   "</div></section>")
+    elif active == "review":
+        section = ("<section class='step'><div class='step-num'>4</div><div>"
+                   "<h2>Review</h2>"
+                   f"{_review_section(ctx['theme_id'], ctx['due'], ctx['confused'])}"
+                   "</div></section>")
+    else:
+        section = ("<section class='step'><div class='step-num'>1</div><div>"
+                   "<h2>Baca</h2>"
+                   f"<p>{html.escape(ctx['summary'])}</p>"
+                   "</div></section>")
     body = (
         f"<p><a href='/'>← Semua tema</a></p><h1>{name}</h1>"
         f"<p class='lede'>{ctx['chunks']} potongan materi · {len(ctx['due'])} kartu jatuh tempo</p>"
+        f"{step_nav(ctx['theme_id'], active)}"
         f"{notice_html}"
-        "<section class='step'><div class='step-num'>1</div><div>"
-        "<h2>Baca</h2>"
-        f"<p>{html.escape(ctx['summary'])}</p>"
-        "</div></section>"
-        "<section class='step'><div class='step-num'>2</div><div>"
-        "<h2>Tanya</h2>"
-        f"{_ask_section(ctx['theme_id'], answer)}"
-        "</div></section>"
-        "<section class='step'><div class='step-num'>3</div><div>"
-        "<h2>Kuis</h2>"
-        f"{quiz_block}"
-        "</div></section>"
-        "<section class='step'><div class='step-num'>4</div><div>"
-        "<h2>Review</h2>"
-        f"{_review_section(ctx['theme_id'], ctx['due'], ctx['confused'])}"
-        "</div></section>"
+        f"{section}"
     )
     return shell(name, body)

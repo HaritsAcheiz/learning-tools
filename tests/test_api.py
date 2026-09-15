@@ -64,8 +64,25 @@ def test_theme_page_html(tmp_path, monkeypatch):
     r = client.get("/themes/bio.md", headers={"Accept": "text/html"})
     assert r.status_code == 200
     assert r.headers["content-type"].startswith("text/html")
-    for marker in ("Tanya", "Kuis", "Review", "answer-0", "item-0"):
-        assert marker in r.text
+    assert "<h1>" in r.text
+    for href in ("/themes/bio.md/tanya", "/themes/bio.md/quiz", "/themes/bio.md/review"):
+        assert href in r.text
+    assert "answer-0" not in r.text
+
+def test_step_pages_html(tmp_path, monkeypatch):
+    client = _setup_client(tmp_path, monkeypatch)
+    assert client.post("/rescan").status_code == 200
+    cases = [
+        ("/themes/bio.md/tanya", "name='question'", "Tanya"),
+        ("/themes/bio.md/quiz", "answer-0", "Kuis"),
+        ("/themes/bio.md/review", "Lupa", "Review"),
+    ]
+    for path, marker, label in cases:
+        r = client.get(path, headers={"Accept": "text/html"})
+        assert r.status_code == 200, path
+        assert r.headers["content-type"].startswith("text/html"), path
+        assert marker in r.text, path
+        assert "aria-current='page'>" + label in r.text, path
 
 def test_theme_json_default(tmp_path, monkeypatch):
     client = _setup_client(tmp_path, monkeypatch)
