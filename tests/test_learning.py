@@ -37,3 +37,20 @@ def test_confused_tracking(tmp_path):
     rows = get_confused(conn, "tema")
     assert rows[0]["count"] == 2
     conn.close()
+from app.learning import srs_update, ensure_cards, due_cards
+from app.models import Card
+
+def test_sm2_progresses_and_regresses():
+    c = Card("c1", "t", "front", "back", "d:0", 2.5, 0, 0, "2026-09-15")
+    good = srs_update(c, 5, "2026-09-15")
+    assert (good.reps, good.interval) == (1, 1)
+    bad = srs_update(good, 2, "2026-09-16")
+    assert bad.reps == 0 and bad.interval == 1
+
+def test_due_list(tmp_path):
+    conn = init_db(tmp_path / "s.db")
+    n = ensure_cards(conn, "t", [{"id": "d:0", "text": "fotosintesis terjadi di kloroplas daun"}], "2026-09-15")
+    assert n == 1
+    assert len(due_cards(conn, "t", "2026-09-15")) == 1
+    assert len(due_cards(conn, "t", "2026-09-14")) == 0
+    conn.close()

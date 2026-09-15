@@ -54,3 +54,16 @@ def get_confused(conn: sqlite3.Connection, theme_id: str) -> list[dict]:
         "SELECT theme_id, chunk_id, label, count FROM mistakes WHERE theme_id = ? ORDER BY count DESC",
         (theme_id,),
     )]
+def upsert_card(conn: sqlite3.Connection, card_id: str, theme_id: str, front: str, back: str, chunk_id: str, today: str) -> None:
+    conn.execute(
+        "INSERT INTO cards (id, theme_id, front, back, chunk_id, ease, interval, reps, due) "
+        "VALUES (?, ?, ?, ?, ?, 2.5, 0, 0, ?) ON CONFLICT(id) DO NOTHING",
+        (card_id, theme_id, front, back, chunk_id, today),
+    )
+    conn.commit()
+
+def list_due_cards(conn: sqlite3.Connection, theme_id: str, today: str) -> list[dict]:
+    return [dict(r) for r in conn.execute(
+        "SELECT * FROM cards WHERE theme_id = ? AND due <= ? ORDER BY due, id",
+        (theme_id, today),
+    )]

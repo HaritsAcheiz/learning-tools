@@ -55,3 +55,31 @@ def grade_quiz(items: list[QuizItem], answers: list[int]) -> dict:
     details = [{"correct": a == it.answer, "chunk_id": it.chunk_id} for it, a in zip(items, answers)]
     score = sum(1 for d in details if d["correct"]) / len(details) if details else 0.0
     return {"score": score, "correct": sum(1 for d in details if d["correct"]), "total": len(details), "details": details}
+from datetime import date, timedelta
+from app.models import Card
+
+def srs_update(card: Card, quality: int, today: str) -> Card:
+    q = max(0, min(5, quality))
+    ease = max(1.3, card.ease + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02)))
+    if q < 3:
+        reps, interval = 0, 1
+    else:
+        reps = card.reps + 1
+        interval = 1 if reps == 1 else (6 if reps == 2 else round(card.interval * ease))
+    due = (date.fromisoformat(today) + timedelta(days=interval)).isoformat()
+    return Card(card.id, card.theme_id, card.front, card.back, card.chunk_id, round(ease, 2), interval, reps, due)
+
+def ensure_cards(conn, theme_id: str, chunks: list[dict], today: str) -> int:
+    from app.store import upsert_card
+    n = 0
+    for ch in chunks:
+        front = ch["text"][:120].strip()
+        if len(front) < 20:
+            continue
+        upsert_card(conn, f"card:{ch['id']}", theme_id, f"Jelaskan: {front}...", ch["text"][:500], ch["id"], today)
+        n += 1
+    return n
+
+def due_cards(conn, theme_id: str, today: str) -> list[dict]:
+    from app.store import list_due_cards
+    return list_due_cards(conn, theme_id, today)
