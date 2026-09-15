@@ -216,3 +216,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+data/*.db*
+
+# User study material — private, never commit
+learning_material/*
