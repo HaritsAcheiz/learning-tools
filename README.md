@@ -22,7 +22,7 @@ pip install -e ".[test]"
 python -m uvicorn app.main:app --port 8000
 ```
 
-Buka http://localhost:8000 untuk daftar tema dan tombol **Rescan**.
+Buka http://localhost:8000 untuk meja belajar: daftar tema, halaman baca, form tanya, kuis interaktif, dan review kartu — seluruh alur belajar bisa dipakai dari browser. API JSON-nya tetap tersedia untuk akses terprogram.
 
 1. Taruh materi (PDF/DOCX/TXT/MD) sebagai file atau subfolder di `learning_material/`.
 2. Klik **Rescan** (`POST /rescan`).
@@ -31,7 +31,7 @@ Buka http://localhost:8000 untuk daftar tema dan tombol **Rescan**.
 5. Kuis: `GET /themes/{id}/quiz` untuk soal, lalu `POST /themes/{id}/quiz` dengan `{"items": [...], "answers": [...]}` untuk nilai.
 6. Review: `GET /themes/{id}/review` untuk kartu jatuh tempo, lalu `POST /themes/{id}/review` dengan `{"card_id": "...", "quality": 4}` (0–5).
 
-Dokumentasi API interaktif tersedia di http://localhost:8000/docs. Tes: `pytest -q`.
+Dokumentasi API interaktif tersedia di http://localhost:8000/docs. Tes: `pytest -q`. Rute yang sama melayani HTML untuk browser (header `Accept: text/html` atau form) dan JSON untuk API.
 
 ## Privasi & offline
 
