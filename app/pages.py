@@ -262,10 +262,15 @@ def theme_page(ctx: dict, active: str = "baca", answer: dict | None = None,
                    f"{_review_section(ctx['theme_id'], ctx['due'], ctx['confused'])}"
                    "</div></section>")
     else:
+        sec_blocks = "".join(
+            f"<h3>{html.escape(s['title'])}</h3><p>{html.escape(s['summary'])}</p>"
+            f"<p class='cite'>Sumber: {', '.join(f'[{i}]' for i in s['chunk_ids'])}</p>"
+            for s in ctx.get("sections", []))
         section = ("<section class='step'><div class='step-num'>1</div><div>"
                    "<h2>Baca</h2>"
                    f"<p class='cite'>Mode: {html.escape(ctx['mode'])}</p>"
                    f"<p>{html.escape(ctx['summary'])}</p>"
+                   f"{sec_blocks}"
                    "</div></section>")
     body = (
         f"<p><a href='/'>← Semua tema</a></p><h1>{name}</h1>"

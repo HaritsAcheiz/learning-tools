@@ -1,5 +1,6 @@
 # app/learning.py (part 1)
 from app.retrieval import search, sample_spread
+from app.sections import split_sections
 
 REFUSE_MSG = "Maaf, saya tidak menemukan konteks yang cukup di materi ini."
 
@@ -14,6 +15,32 @@ def summarize(chunks: list[str], provider, n: int = SUMMARY_CHUNKS) -> str:
         "Summarize the key points of the following material. "
         "Use only the context above. Do not add facts beyond the context.",
         picked)
+
+
+def summarize_sections(texts: list[str], provider, per_section: int = 3) -> list[dict]:
+    """One normative mini-summary per detected section.
+
+    Returns [{"title": str, "summary": str, "chunk_ids": [int, ...]}].
+    Each section is summarized from a small spread of its own chunks so a
+    200-section document costs bounded LLM calls with whole-doc coverage.
+    """
+    out = []
+    for sec in split_sections(texts):
+        # Range endpoints hold the heading line, i.e. mixed content from the
+        # neighbouring section (fixed-size chunks straddle boundaries), so
+        # sample from the interior when the section is large enough.
+        ids = sec["indices"]
+        core = ids[1:-1] if len(ids) > per_section + 1 else ids
+        take = min(per_section, len(core))
+        idx = [core[p] for p in sample_spread(core, take)]
+        picked = [texts[j] for j in idx]
+        summary = provider.generate(
+            "For the following section of a technical guideline, "
+            "list 2-3 key normative takeaways (what institutions must or should do). "
+            "Use only the context above. Do not add facts beyond the context.",
+            picked)
+        out.append({"title": sec["title"], "summary": summary, "chunk_ids": idx})
+    return out
 
 
 def rag_answer(question: str, chunks: list[str], provider, top_k: int = 5) -> tuple[str, list[int]]:

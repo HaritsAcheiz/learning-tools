@@ -8,7 +8,7 @@ from app import pages
 from app.config import get_settings
 from app import store
 from app.ingest import scan_themes, ingest_theme
-from app.learning import summarize, rag_answer, make_cloze_quiz, grade_quiz, ensure_cards, due_cards, srs_update
+from app.learning import summarize, summarize_sections, rag_answer, make_cloze_quiz, grade_quiz, ensure_cards, due_cards, srs_update
 from app.llm import get_provider
 from app.models import Card, QuizItem
 
@@ -37,7 +37,7 @@ def _is_form(request: Request) -> bool:
     return request.headers.get("content-type", "").startswith(
         "application/x-www-form-urlencoded")
 
-def _theme_context(conn, s, theme_id: str, num: int = 5) -> dict:
+def _theme_context(conn, s, theme_id: str, num: int = 5, include_sections: bool = False) -> dict:
     chunks = store.list_chunks(conn, theme_id)
     texts = [c["text"] for c in chunks]
     today = date.today().isoformat()
@@ -45,7 +45,7 @@ def _theme_context(conn, s, theme_id: str, num: int = 5) -> dict:
     names = {t["id"]: t["name"] for t in store.list_themes(conn)}
     provider = get_provider()
     model = getattr(provider, "model", None)
-    return {
+    ctx = {
         "theme_id": theme_id,
         "name": names.get(theme_id, theme_id),
         "mode": f"AI lokal ({model})" if model else "kutipan (SAFE)",
@@ -56,6 +56,9 @@ def _theme_context(conn, s, theme_id: str, num: int = 5) -> dict:
         "due": due_cards(conn, theme_id, today),
         "confused": store.get_confused(conn, theme_id),
     }
+    if include_sections:
+        ctx["sections"] = summarize_sections(texts, provider)
+    return ctx
 
 @app.get("/")
 def index():
@@ -88,7 +91,8 @@ async def read_theme(theme_id: str, request: Request):
     try:
         _require_theme(conn, s, theme_id)
         if _wants_html(request):
-            return HTMLResponse(pages.theme_page(_theme_context(conn, s, theme_id)))
+            return HTMLResponse(pages.theme_page(
+                _theme_context(conn, s, theme_id, include_sections=True)))
         chunks = store.list_chunks(conn, theme_id)
         texts = [c["text"] for c in chunks]
         return {"theme": theme_id, "chunks": len(texts), "summary": summarize(texts, get_provider())}

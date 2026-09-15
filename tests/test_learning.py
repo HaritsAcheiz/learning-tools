@@ -83,3 +83,107 @@ def test_summarize_prompt_is_english():
     assert "Summarize" in seen["prompt"]
     for word in ("Ringkas", "berikut", "konteks", "Jawab"):
         assert word not in seen["prompt"]
+
+def test_summarize_sections_structure():
+    from app.learning import summarize_sections
+
+    texts = [
+        "Cover page and foreword text here.",
+        "Section A.1, ICT Governance, begins with definitions",
+        "Governance details part one here.",
+        "Governance details part two here.",
+        "Section A.2, ICT Management, promotes processes",
+        "Management details here.",
+    ]
+    calls = []
+
+    class P:
+        def generate(self, prompt, context):
+            calls.append((prompt, list(context)))
+            return "takeaways"
+
+    out = summarize_sections(texts, P(), per_section=2)
+    assert [s["title"] for s in out] == [
+        "Introduction", "Section A.1, ICT Governance, begins with definitions",
+        "Section A.2, ICT Management, promotes processes"]
+    assert all(s["summary"] == "takeaways" for s in out)
+    assert out[0]["chunk_ids"] == [0]
+    assert out[1]["chunk_ids"] == [1, 3]
+    assert out[2]["chunk_ids"] == [4, 5]
+    assert len(calls) == 3
+    assert all("takeaway" in p.lower() or "Takeaway" in p for p, _ in calls)
+
+def test_summarize_sections_no_headings():
+    from app.learning import summarize_sections
+
+    out = summarize_sections(["only text here"], SafeProvider())
+    assert len(out) == 1
+    assert out[0]["title"] == "Full document"
+    assert out[0]["chunk_ids"] == [0]
+
+def test_summarize_sections_skips_boundary_chunks():
+    from app.learning import summarize_sections
+
+    texts = ["prev-tail", "body-1", "body-2", "body-3", "body-4", "next-head"]
+    seen = {}
+
+    class P:
+        def generate(self, prompt, context):
+            seen["context"] = list(context)
+            return "ok"
+
+    summarize_sections(texts, P(), per_section=2)
+    assert seen["context"] == ["body-1", "body-4"]
+
+def test_split_sections_bare_heading():
+    from app.sections import split_sections
+
+    out = split_sections(["intro here", "A.2. ICT Management", "body text"])
+    assert [s["title"] for s in out] == ["Introduction", "A.2. ICT Management"]
+    assert out[1]["indices"] == [1, 2]
+
+def test_split_sections_merges_duplicate_titles():
+    from app.sections import split_sections
+
+    out = split_sections(
+        ["toc", "Section A.1, Foo", "x", "Section A.1, Foo", "y"])
+    assert [s["title"] for s in out] == ["Introduction", "Section A.1, Foo"]
+    assert out[0]["indices"] == [0]
+    assert out[1]["indices"] == [1, 2, 3, 4]
+
+def test_split_sections_merges_toc_variants_and_subsections():
+    from app.sections import split_sections
+
+    out = split_sections([
+        "A.3. ICT Service Delivery 18",
+        "toc filler",
+        "A.3. ICT Service Delivery",
+        "body one",
+        "C.1.1. Sub detail",
+        "body two",
+    ])
+    # TOC line (trailing page number) is skipped; body heading wins.
+    assert [s["title"] for s in out] == [
+        "Introduction", "A.3. ICT Service Delivery", "C.1.1. Sub detail"]
+    assert out[0]["indices"] == [0, 1]
+    assert out[1]["indices"] == [2, 3]
+    assert out[2]["indices"] == [4, 5]
+
+def test_split_sections_prefers_canonical_title():
+    from app.sections import split_sections
+
+    out = split_sections([
+        "Section A.1, ICT Governance, begins with the definition of things",
+        "A.1. ICT Governance",
+        "body",
+    ])
+    assert [s["title"] for s in out] == ["A.1. ICT Governance"]
+    assert out[0]["indices"] == [0, 1, 2]
+
+def test_group_key_needs_dotted_number():
+    from app.sections import _group_key
+
+    assert _group_key("Section A.1, ICT Governance, begins with x") == "A.1"
+    assert _group_key("section 4.2.3, Control of Documents") == "4.2"
+    assert _group_key("Part A, ICT Governance and Management") == "part a"
+    assert _group_key("C.1.1. Master Data Governance") == "C.1"
