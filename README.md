@@ -7,7 +7,7 @@ Aplikasi web lokal (FastAPI) yang mengubah materi PDF/DOCX/TXT/MD menjadi alur b
 ## Fitur
 
 - **Pilih tema** — tiap file/subfolder di `learning_material/` menjadi satu tema.
-- **Ringkasan** — poin kunci tiap tema.
+- **Ringkasan** — gambaran umum tiap tema plus poin kunci per bagian, masing-masing dengan sitasi sumber.
 - **Tanya materi** — jawaban berdasar potongan materi, lengkap dengan sitasi sumber.
 - **Kuis** — pilihan ganda otomatis dari materi, lengkap dengan pembahasan; kesalahan berulang dicatat sebagai konsep yang membingungkan.
 - **Review** — flashcards + SM-2 spaced repetition dan daftar kartu jatuh tempo.

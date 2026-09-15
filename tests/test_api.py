@@ -68,6 +68,7 @@ def test_theme_page_html(tmp_path, monkeypatch):
     for href in ("/themes/bio.md/tanya", "/themes/bio.md/quiz", "/themes/bio.md/review"):
         assert href in r.text
     assert "answer-0" not in r.text
+    assert "Full document" in r.text
 
 def test_baca_shows_provider_mode(tmp_path, monkeypatch):
     client = _setup_client(tmp_path, monkeypatch)
