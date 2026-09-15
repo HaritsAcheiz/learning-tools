@@ -18,3 +18,22 @@ def test_rag_refuses_without_context():
     answer, cited = rag_answer("apa kabar?", [], SafeProvider())
     assert cited == []
     assert "tidak menemukan" in answer.lower()
+
+from app.learning import make_cloze_quiz, grade_quiz
+from app.store import init_db, record_mistake, get_confused
+
+def test_cloze_quiz_and_grading():
+    items = make_cloze_quiz(["Jakarta adalah ibu kota Indonesia"], ["d0:0"], num=1)
+    assert len(items) == 1
+    assert items[0].answer in (0, 1, 2)
+    assert len(items[0].options) == 3
+    res = grade_quiz(items, [items[0].answer])
+    assert res["score"] == 1.0 and res["details"][0]["correct"] is True
+
+def test_confused_tracking(tmp_path):
+    conn = init_db(tmp_path / "t.db")
+    record_mistake(conn, "tema", "d0:0", "ibu kota")
+    record_mistake(conn, "tema", "d0:0", "ibu kota")
+    rows = get_confused(conn, "tema")
+    assert rows[0]["count"] == 2
+    conn.close()

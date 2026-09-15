@@ -40,3 +40,17 @@ def list_chunks(conn: sqlite3.Connection, theme_id: str) -> list[dict]:
         "SELECT id, theme_id, doc_id, idx, text FROM chunks WHERE theme_id = ? ORDER BY doc_id, idx",
         (theme_id,),
     )]
+
+def record_mistake(conn: sqlite3.Connection, theme_id: str, chunk_id: str, label: str) -> None:
+    conn.execute(
+        "INSERT INTO mistakes (theme_id, chunk_id, label, count) VALUES (?, ?, ?, 1) "
+        "ON CONFLICT(theme_id, chunk_id) DO UPDATE SET count = count + 1",
+        (theme_id, chunk_id, label),
+    )
+    conn.commit()
+
+def get_confused(conn: sqlite3.Connection, theme_id: str) -> list[dict]:
+    return [dict(r) for r in conn.execute(
+        "SELECT theme_id, chunk_id, label, count FROM mistakes WHERE theme_id = ? ORDER BY count DESC",
+        (theme_id,),
+    )]
